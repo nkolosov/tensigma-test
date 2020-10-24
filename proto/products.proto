@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package api;
+
+import "google/protobuf/timestamp.proto";
+
+enum ResponseCode {
+    OK = 0;
+    FAIL = 1;
+}
+
+message FetchRequest {
+    string url = 1;
+}
+
+message FetchResponse {
+    ResponseCode code = 1;
+    string status_message = 2;
+}
+
+enum OrderType {
+    ASC = 0;
+    DESC = 1;
+}
+
+enum OrderSpecification {
+    PRICE = 0;
+    LAST_PRICE_UPDATE = 1;
+    PRICE_UPDATE_COUNT = 2;
+}
+
+message Order {
+    OrderType type = 1;
+    OrderSpecification specification = 2;
+}
+
+message Paging {
+    int64 page = 1;
+    int64 page_size = 2;
+}
+
+message ListRequest {
+    OrderType order = 1;
+    Paging paging = 2;
+}
+
+message Product {
+    string name = 1;
+    int64 price = 2;
+    int64 price_update_count = 3;
+    google.protobuf.Timestamp last_updated = 4;
+}
+
+message ListResponse {
+    ResponseCode code = 1;
+    int64 page = 2;
+    int64 pages_count = 3;
+
+    repeated Product Products = 4;
+}
+
+service ProductsAPI {
+    rpc Fetch (FetchRequest) returns (FetchResponse) {}
+    rpc List (ListRequest) returns (ListResponse) {}
+}

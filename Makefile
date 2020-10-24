@@ -1,7 +1,16 @@
-.PHONY: build
+OUTPUT?=bin/products-api
+
+.PHONY: clean
+clean:
 	@echo "+ $@"
-	go build -o bin/server cmd/main.go
+	rm -rf ${OUTPUT}
+
+.PHONY: build
+build: clean
+	@echo "+ $@"
+	go build -o bin/products-api cmd/server/server.go
 
 .PHONY: proto
 proto:
-	protoc -I scripts/proto/ scripts/proto/api.proto --go_out=plugins=grpc:internal/api/
+	@echo "+ $@"
+	protoc --proto_path=./proto --go_out=plugins=grpc:./internal/api products.proto
