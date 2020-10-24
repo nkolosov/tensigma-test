@@ -23,7 +23,7 @@ func MustMongoDB(cfg *config.MongoConfig) (*mongo.Client, error) {
 
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error on mongo connection")
+		return nil, errors.Wrapf(err, "error on mongo connection\n")
 	}
 
 	ctx, cancel = context.WithTimeout(context.Background(), cfg.ConnectTimeout)
@@ -31,7 +31,7 @@ func MustMongoDB(cfg *config.MongoConfig) (*mongo.Client, error) {
 
 	err = client.Ping(ctx, readpref.Secondary())
 	if err != nil {
-		return nil, errors.Wrapf(err, "error on ping database")
+		return nil, errors.Wrapf(err, "error on ping database\n")
 	}
 
 	return client, nil

@@ -2,10 +2,8 @@ package csv
 
 import (
 	"encoding/csv"
-	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -59,7 +57,7 @@ func (e *Exporter) run() {
 func (e *Exporter) exportFile(filename string) error {
 	csvFile, err := os.Open(filename)
 	if err != nil {
-		return errors.Wrapf(err, "can't open the csv file %s", filename)
+		return errors.Wrapf(err, "can't open CSV file %s\n", filename)
 	}
 
 	defer func() {
@@ -69,19 +67,18 @@ func (e *Exporter) exportFile(filename string) error {
 		}
 	}()
 
-	var name string
-	var price int
-
 	r := csv.NewReader(csvFile)
 	r.Comma = ';'
 	r.FieldsPerRecord = 2
 	r.TrimLeadingSpace = true
 
+	var product *datasource.Product
+
 	for {
 		// Read each record from csv
-		record, err := r.Read()
+		columns, err := r.Read()
 
-		grpclog.Infof("read record %#v %#v\n", record, err)
+		grpclog.Infof("read record %#v %#v\n", columns, err)
 
 		if err == io.EOF {
 			break
@@ -91,18 +88,8 @@ func (e *Exporter) exportFile(filename string) error {
 			return errors.Wrapf(err, "can't read data from CSV %s\n", filename)
 		}
 
-		if len(record) != 2 {
-			return fmt.Errorf("invalid CSV row %#v", record)
-		}
-
-		name = record[0]
-		price, _ = strconv.Atoi(record[1])
-
-		model := datasource.NewProductModel(name, uint64(price))
-
-		grpclog.Infof("prepare model %+v\n", model)
-
-		e.ds.Update(model)
+		product, err = datasource.CreateProductFromCSV(columns)
+		e.ds.Update(product)
 	}
 
 	return nil

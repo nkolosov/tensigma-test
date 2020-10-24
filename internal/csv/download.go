@@ -68,11 +68,11 @@ func (d *Downloader) run() {
 	var errorMessage string
 
 	for task := range d.tasks {
-		grpclog.Infof("read task %+v", task)
+		grpclog.Infof("get CSV download task %+v\n", task)
 
 		filename, err = downloadFile(d.downloadDirectory, task.url)
 		if err != nil {
-			grpclog.Warningf("can't download CSV with error: %+v", err)
+			grpclog.Warningf("can't download CSV file with error: %+v", err)
 		}
 
 		errorMessage = ""
@@ -87,8 +87,6 @@ func (d *Downloader) run() {
 			errorMessage: errorMessage,
 		}
 
-		grpclog.Infof("publish result %+v", result)
-
 		d.results <- result
 	}
 }
@@ -100,7 +98,7 @@ func (d *Downloader) close() {
 func downloadFile(filePath string, url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "can't download file\n")
 	}
 
 	defer func() {
@@ -109,18 +107,18 @@ func downloadFile(filePath string, url string) (string, error) {
 
 	info, err := os.Stat(filePath)
 	if err != nil {
-		return "", errors.Wrapf(err, "can't get path info `%s`", filePath)
+		return "", errors.Wrapf(err, "can't get file info %s\n", filePath)
 	}
 
 	if !info.IsDir() {
-		return "", fmt.Errorf("directory %s is not exists", filePath)
+		return "", fmt.Errorf("directory %s is not exists\n", filePath)
 	}
 
 	fileName := fmt.Sprintf("%s/%s.csv", filePath, uuid.New().String())
 
 	out, err := os.Create(fileName)
 	if err != nil {
-		return "", fmt.Errorf("can't create file %s", fileName)
+		return "", errors.Wrapf(err, "can't create file %s\n", fileName)
 	}
 
 	defer func() {
@@ -129,7 +127,7 @@ func downloadFile(filePath string, url string) (string, error) {
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("can't copy file %s", fileName)
+		return "", errors.Wrapf(err, "can't copy file %s to workdir", fileName)
 	}
 
 	return fileName, nil

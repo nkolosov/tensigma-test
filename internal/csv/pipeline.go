@@ -8,10 +8,6 @@ import (
 	"github.com/nkolosov/tendigma-test/internal/datasource"
 )
 
-type WorkersPool interface {
-	RunWorkers(n int)
-}
-
 type Pipeline struct {
 	downloader *Downloader
 	exporter   *Exporter
@@ -19,8 +15,8 @@ type Pipeline struct {
 	downloaderTasks chan DownloadCSVTask
 	exporterTasks   chan DownloadCSVResult
 
-	isClosed bool
-	mutex    sync.Mutex
+	isStopped bool
+	mutex     sync.Mutex
 }
 
 func NewPipeline(cfg config.PipelineConfig, ds *datasource.Products) *Pipeline {
@@ -45,7 +41,7 @@ func (p *Pipeline) Handle(url string) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.isClosed {
+	if p.isStopped {
 		return
 	}
 
@@ -56,11 +52,11 @@ func (p *Pipeline) Close() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.isClosed {
-		return errors.New("pipeline already stopped")
+	if p.isStopped {
+		return errors.New("pipeline already stopped\n")
 	}
 
-	p.isClosed = true
+	p.isStopped = true
 
 	close(p.downloaderTasks)
 	p.downloader.close()

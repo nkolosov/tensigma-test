@@ -1,6 +1,8 @@
 package datasource
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,13 +17,20 @@ type Product struct {
 	priceUpdateCount uint64    `bson:"priceUpdateCount"`
 }
 
-func NewProductModel(name string, price uint64) *Product {
+func CreateProductFromCSV(columns []string) (*Product, error) {
+	if len(columns) != 2 {
+		return nil, fmt.Errorf("invalid CSV row %#v", columns)
+	}
+
+	name := columns[0]
+	price, _ := strconv.Atoi(columns[1])
+
 	return &Product{
 		name:             name,
-		price:            price,
+		price:            uint64(price),
 		lastPriceUpdate:  time.Now(),
 		priceUpdateCount: 1,
-	}
+	}, nil
 }
 
 type Products struct {
