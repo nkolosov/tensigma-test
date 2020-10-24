@@ -12,17 +12,20 @@ import (
 type Products struct {
 	ds *datasource.Products
 
-	downloader *csv.Downloader
+	pipeline *csv.Pipeline
 }
 
-func NewProductsAPI(ds *datasource.Products) *Products {
+func NewProductsAPI(ds *datasource.Products, pipeline *csv.Pipeline) *Products {
 	return &Products{
-		ds: ds,
+		ds:       ds,
+		pipeline: pipeline,
 	}
 }
 
 func (api *Products) Fetch(ctx context.Context, req *FetchRequest) (*FetchResponse, error) {
 	grpclog.Infof("fetch request %+v\n", req)
+
+	api.pipeline.Handle(req.Url)
 
 	return &FetchResponse{}, nil
 }

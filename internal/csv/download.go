@@ -68,6 +68,8 @@ func (d *Downloader) run() {
 	var errorMessage string
 
 	for task := range d.tasks {
+		grpclog.Infof("read task %+v", task)
+
 		filename, err = downloadFile(d.downloadDirectory, task.url)
 		if err != nil {
 			grpclog.Warningf("can't download CSV with error: %+v", err)
@@ -84,6 +86,8 @@ func (d *Downloader) run() {
 			isSuccess:    err == nil,
 			errorMessage: errorMessage,
 		}
+
+		grpclog.Infof("publish result %+v", result)
 
 		d.results <- result
 	}

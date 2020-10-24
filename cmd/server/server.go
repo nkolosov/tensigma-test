@@ -22,15 +22,17 @@ func main() {
 	grpclog.Infoln("start products-api server")
 	cfg := config.MustConfigure()
 
+	grpclog.Infof("configs %+v", cfg)
+
 	client, err := datasource.MustMongoDB(&cfg.Mongo)
 	if err != nil {
-		grpclog.Fatalf("failed to connect to MongoDB with err %s\n", err.Error())
+		grpclog.Fatalf("failed to connect to MongoDB %s\n", err.Error())
 	}
 
 	ds := datasource.NewProducts(client)
-	productsAPI := api.NewProductsAPI(ds)
-
 	pipeline := csv.NewPipeline(cfg.Pipeline, ds)
+
+	productsAPI := api.NewProductsAPI(ds, pipeline)
 
 	hostPort := net.JoinHostPort(cfg.GRPC.Host, cfg.GRPC.Port)
 	listener, err := net.Listen("tcp", hostPort)
@@ -43,7 +45,7 @@ func main() {
 	grpcServer := grpc.NewServer(opts...)
 	defer func() {
 		if r := recover(); r != nil {
-			grpclog.Fatalf("app crashed & recovered with: %#v\n")
+			grpclog.Warningf("app crashed & recovered with: %#v\n", r)
 
 			terminateApp(grpcServer, pipeline, client)
 		}
@@ -52,7 +54,7 @@ func main() {
 	api.RegisterProductsAPIServer(grpcServer, productsAPI)
 
 	if err = grpcServer.Serve(listener); err != nil {
-		grpclog.Fatalf("failed to serve for listener %+v", listener)
+		grpclog.Fatalf("failed to serve for listener %+v\n", listener)
 	}
 
 	mainWG := &sync.WaitGroup{}
@@ -81,10 +83,10 @@ func terminateApp(
 	var err error
 
 	if err = pipeline.Close(); err != nil {
-		grpclog.Errorf("can't close pipeline with error %+v", err)
+		grpclog.Errorf("can't close pipeline with error %+v\n", err)
 	}
 
 	if err = client.Disconnect(context.Background()); err != nil {
-		grpclog.Errorf("can't close datasource connection with error %+v", err)
+		grpclog.Errorf("can't close datasource connection with error %+v\n", err)
 	}
 }

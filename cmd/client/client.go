@@ -29,7 +29,7 @@ func main() {
 
 	client := api.NewProductsAPIClient(conn)
 	request := &api.FetchRequest{
-		Url: "http://localhost:4500/data.csv",
+		Url: "http://localhost:4000/data.csv",
 	}
 
 	response, err := client.Fetch(context.Background(), request)

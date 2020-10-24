@@ -31,7 +31,7 @@ func NewPipeline(cfg config.PipelineConfig, ds *datasource.Products) *Pipeline {
 	exporter := NewExporter(ds, exporterTasks)
 
 	downloader.runWorkers(cfg.DownloaderWorkersCount)
-	downloader.runWorkers(cfg.ExporterWorkersCount)
+	exporter.runWorkers(cfg.ExporterWorkersCount)
 
 	return &Pipeline{
 		downloader:      downloader,
@@ -66,7 +66,7 @@ func (p *Pipeline) Close() error {
 	p.downloader.close()
 
 	close(p.exporterTasks)
-	p.exporter.Close()
+	p.exporter.close()
 
 	return nil
 }

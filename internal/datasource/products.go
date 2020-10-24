@@ -35,5 +35,5 @@ func NewProducts(client *mongo.Client) *Products {
 }
 
 func (p *Products) Update(model *Product) {
-	grpclog.Infof("update model %+v", model)
+	grpclog.Infof("update model %+v\n", model)
 }
