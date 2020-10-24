@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package tensigma;
+
+message FetchProductsRequest {
+    string url = 1;
+}
+
+message Product {
+    string name = 1;
+    uint64 price = 2;
+}
+
+message ResponseStatus {
+    int32 code = 1;
+    string message = 2;
+}
+
+message Response {
+    ResponseStatus Status = 1;
+    Product Product = 2;
+}
+
+message ProductsListResponse {
+    ResponseStatus Status = 1;
+    repeated Product Products = 2;
+}
+
+service API {
+    rpc Fetch (FetchProductsRequest) returns (ProductsListResponse) {}
+}
+
+
