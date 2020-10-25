@@ -41,6 +41,8 @@ func CreateProductFromCSV(columns []string) (*Product, error) {
 const (
 	database   = "tendigma"
 	collection = "products"
+
+	cursorTimeout = 10 * time.Second
 )
 
 type Products struct {
@@ -60,9 +62,24 @@ func NewProducts(client *mongo.Client) (*Products, error) {
 	return products, nil
 }
 
-func (p *Products) Update(model *Product) {
+func (p *Products) Update(model *Product) error {
 	grpclog.Infof("update product model %+v\n", model)
-	//p.client.
+
+	opts := options.Update().SetUpsert(true)
+
+	filter := bson.D{{"_id", model.id}}
+	update := bson.D{{"$set", model}}
+
+	ctx, cancel := context.WithTimeout(context.Background(), cursorTimeout)
+	defer cancel()
+
+	result, err := p.client.Database(database).Collection(collection).UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		return errors.Wrapf(err, "can't update products")
+	}
+
+	fmt.Printf("result %+v", result)
+	return nil
 }
 
 func (p *Products) init() error {

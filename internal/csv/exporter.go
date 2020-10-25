@@ -43,14 +43,10 @@ func (e *Exporter) run() {
 			continue
 		}
 
-		grpclog.Infof("read export task %+v", file)
-
 		err = e.exportFile(file.filename)
 		if err != nil {
-			grpclog.Infof("error on export file data %+v", err)
+			grpclog.Errorf("error on export file data %+v for file %+v", err, file)
 		}
-
-		grpclog.Infof("completed export task %+v", file)
 	}
 }
 
@@ -75,10 +71,7 @@ func (e *Exporter) exportFile(filename string) error {
 	var product *datasource.Product
 
 	for {
-		// Read each record from csv
 		columns, err := r.Read()
-
-		grpclog.Infof("read record %#v %#v\n", columns, err)
 
 		if err == io.EOF {
 			break
@@ -89,7 +82,14 @@ func (e *Exporter) exportFile(filename string) error {
 		}
 
 		product, err = datasource.CreateProductFromCSV(columns)
-		e.ds.Update(product)
+		if err != nil {
+			return errors.Wrapf(err, "can't create model from CSV array\n")
+		}
+
+		err = e.ds.Update(product)
+		if err != nil {
+			return errors.Wrapf(err, "can't update model %+v", product)
+		}
 	}
 
 	return nil

@@ -68,8 +68,6 @@ func (d *Downloader) run() {
 	var errorMessage string
 
 	for task := range d.tasks {
-		grpclog.Infof("get CSV download task %+v\n", task)
-
 		filename, err = downloadFile(d.downloadDirectory, task.url)
 		if err != nil {
 			grpclog.Warningf("can't download CSV file with error: %+v", err)
