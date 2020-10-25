@@ -29,7 +29,9 @@ func main() {
 		grpclog.Fatalf("failed to connect to MongoDB %s\n", err.Error())
 	}
 
-	ds := datasource.NewProducts(client)
+	var ds *datasource.Products
+
+	ds, err = datasource.NewProducts(client)
 	pipeline := csv.NewPipeline(cfg.Pipeline, ds)
 
 	productsAPI := api.NewProductsAPI(ds, pipeline)
@@ -45,7 +47,7 @@ func main() {
 	grpcServer := grpc.NewServer(opts...)
 	defer func() {
 		if r := recover(); r != nil {
-			grpclog.Warningf("app crashed & recovered with: %#v\n", r)
+			grpclog.Warningf("app crashed & recovered with: %+v\n", r)
 
 			terminateApp(grpcServer, pipeline, client)
 		}

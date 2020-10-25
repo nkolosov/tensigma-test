@@ -1,9 +1,14 @@
 package datasource
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/grpclog"
@@ -33,16 +38,82 @@ func CreateProductFromCSV(columns []string) (*Product, error) {
 	}, nil
 }
 
+const (
+	database   = "tendigma"
+	collection = "products"
+)
+
 type Products struct {
 	client *mongo.Client
 }
 
-func NewProducts(client *mongo.Client) *Products {
-	return &Products{
+func NewProducts(client *mongo.Client) (*Products, error) {
+	products := &Products{
 		client: client,
 	}
+
+	err := products.init()
+	if err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }
 
 func (p *Products) Update(model *Product) {
-	grpclog.Infof("update model %+v\n", model)
+	grpclog.Infof("update product model %+v\n", model)
+	//p.client.
+}
+
+func (p *Products) init() error {
+	indexes, err := p.client.Database(database).Collection(collection).Indexes().List(context.Background())
+	if err != nil {
+		return errors.Wrapf(err, "can't get indexes for collection %s", collection)
+	}
+
+	var index bson.D
+
+	isIndexCreated := false
+
+	for indexes.Next(context.Background()) {
+		err = indexes.Decode(&index)
+		if err != nil {
+			return errors.Wrapf(err, "can't decode index object")
+		}
+
+		if index.Map()["name"] == "product_name_1" {
+			isIndexCreated = true
+			break
+		}
+	}
+
+	if isIndexCreated {
+		return nil
+	}
+
+	return p.createIndexes()
+}
+
+func (p *Products) createIndexes() error {
+	c := p.client.Database(database).Collection(collection)
+	opts := options.CreateIndexes()
+
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.M{"name": 1},
+		},
+		{
+			Keys: bson.M{"price": 1},
+		},
+		{
+			Keys: bson.M{"lastPriceUpdate": 1},
+		},
+	}
+
+	_, err := c.Indexes().CreateMany(context.Background(), indexes, opts)
+	if err != nil {
+		return errors.Wrapf(err, "can't create indexes")
+	}
+
+	return nil
 }
