@@ -2,7 +2,9 @@ package datasource
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
@@ -30,7 +32,11 @@ func CreateProductFromCSV(columns []string) (*Product, error) {
 	name := columns[0]
 	price, _ := strconv.Atoi(columns[1])
 
+	m := md5.New()
+	_, _ = io.WriteString(m, name)
+
 	return &Product{
+		id:               fmt.Sprintf("%x", string(m.Sum(nil))),
 		name:             name,
 		price:            uint64(price),
 		lastPriceUpdate:  time.Now(),
@@ -65,21 +71,42 @@ func NewProducts(client *mongo.Client) (*Products, error) {
 func (p *Products) Update(model *Product) error {
 	grpclog.Infof("update product model %+v\n", model)
 
+	result, err := p.upsert(model.id, bson.M{
+		"$set": bson.M{
+			"name":  model.name,
+			"price": model.price,
+		},
+	})
+
+	if err == nil && (result.ModifiedCount > 0 || result.UpsertedCount > 0) {
+		result, err = p.upsert(model.id, bson.M{
+			"$inc": bson.M{
+				"priceUpdateCount": 1,
+			},
+			"$set": bson.M{
+				"lastPriceUpdate": model.lastPriceUpdate,
+			},
+		})
+	}
+
+	if err != nil {
+		return errors.Wrapf(err, "can't update products")
+	}
+
+	return nil
+}
+
+func (p *Products) upsert(id string, fields bson.M) (*mongo.UpdateResult, error) {
 	opts := options.Update().SetUpsert(true)
 
-	filter := bson.D{{"_id", model.id}}
-	update := bson.D{{"$set", model}}
+	filter := bson.D{{"_id", id}}
+	update := fields
 
 	ctx, cancel := context.WithTimeout(context.Background(), cursorTimeout)
 	defer cancel()
 
 	result, err := p.client.Database(database).Collection(collection).UpdateOne(ctx, filter, update, opts)
-	if err != nil {
-		return errors.Wrapf(err, "can't update products")
-	}
-
-	fmt.Printf("result %+v", result)
-	return nil
+	return result, err
 }
 
 func (p *Products) init() error {
